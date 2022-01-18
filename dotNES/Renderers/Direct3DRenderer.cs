@@ -51,7 +51,7 @@ namespace dotNES.Renderers
                     desc,
                     out device,
                     out swapChain);
-
+				
                 var d2dFactory = new SharpDX.Direct2D1.Factory();
 
                 Factory factory = swapChain.GetParent<Factory>();
@@ -74,6 +74,8 @@ namespace dotNES.Renderers
                     Bottom = ClientSize.Height,
                     Right = ClientSize.Width
                 };
+
+				ApplyMaintainAspectRatio();
 
                 factory.Dispose();
                 surface.Dispose();
@@ -125,13 +127,13 @@ namespace dotNES.Renderers
             {
                 if (_ui == null || d2dRenderTarget == null || !_ui.ready) return;
                 d2dRenderTarget.BeginDraw();
-                d2dRenderTarget.Clear(Color.Gray);
+                d2dRenderTarget.Clear(Color.Black);
 
                 if (_ui.gameStarted)
                 {
                     int stride = UI.GameWidth * 4;
                     gameBitmap.CopyFromMemory(_ui.rawBitmap, stride);
-
+					
                     d2dRenderTarget.DrawBitmap(gameBitmap, clientArea, 1f,
                         _ui._filterMode == UI.FilterMode.Linear
                             ? BitmapInterpolationMode.Linear
@@ -148,5 +150,27 @@ namespace dotNES.Renderers
             Draw();
             base.OnPaint(e);
         }
-    }
+
+		public void ApplyMaintainAspectRatio()
+		{
+			if(UI.maintainAspectRatio)
+			{
+				var windowCenterX = ClientSize.Width / 2f;
+				var gameCenterX = (clientArea.Bottom * UI.AspectRatio);
+
+				clientArea.Right = gameCenterX + windowCenterX - gameCenterX * 0.5f;
+				clientArea.Left = clientArea.Right - gameCenterX;
+			}
+			else
+			{
+				clientArea = new RawRectangleF
+				{
+					Left = 0,
+					Top = 0,
+					Bottom = ClientSize.Height,
+					Right = ClientSize.Width
+				};
+			}
+		}
+	}
 }

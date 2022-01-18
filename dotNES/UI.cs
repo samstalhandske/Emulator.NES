@@ -19,6 +19,7 @@ namespace dotNES
 
         public const int GameWidth = 256;
         public const int GameHeight = 240;
+		public const float AspectRatio = GameWidth / GameHeight;
         public uint[] rawBitmap = new uint[GameWidth * GameHeight];
         public bool ready;
         public IRenderer _renderer;
@@ -60,6 +61,7 @@ namespace dotNES
         private Emulator emu;
         private bool suspended;
         public bool gameStarted;
+		public static bool maintainAspectRatio = false;
 
         private Type[] possibleRenderers = { typeof(SoftwareRenderer), /* typeof(OpenGLRenderer),  */ typeof(Direct3DRenderer) };
         private List<IRenderer> availableRenderers = new List<IRenderer>();
@@ -207,34 +209,39 @@ namespace dotNES
         {
             if (e.Button != MouseButtons.Right) return;
 
-            ContextMenu cm = new ContextMenu
-            {
-                MenuItems =
-                {
-                    new Item("Renderer", self =>
-                    {
-                        foreach (var renderer in availableRenderers)
-                        {
-                            self.Add(new RadioItem(renderer.RendererName, y => {
-                                y.Checked = renderer == _renderer;
-                                y.Click += delegate { SetRenderer(renderer); };
-                            }));
-                        }
-                    }),
-                    new Item("Filter", x =>
-                    {
-                        var filters = new Dictionary<string, FilterMode>()
-                        {
-                            {"None", FilterMode.NearestNeighbor},
-                            {"Linear", FilterMode.Linear},
-                        };
-                        foreach (var filter in filters)
-                            x.Add(new RadioItem(filter.Key, y =>
-                            {
-                                y.Checked = filter.Value == _filterMode;
-                                y.Click += delegate { _filterMode = filter.Value; };
-                            }));
-                    }),
+			ContextMenu cm = new ContextMenu
+			{
+				MenuItems =
+				{
+					new Item("Renderer", self =>
+					{
+						foreach (var renderer in availableRenderers)
+						{
+							self.Add(new RadioItem(renderer.RendererName, y => {
+								y.Checked = renderer == _renderer;
+								y.Click += delegate { SetRenderer(renderer); };
+							}));
+						}
+					}),
+					new Item("Filter", x =>
+					{
+						var filters = new Dictionary<string, FilterMode>()
+						{
+							{"None", FilterMode.NearestNeighbor},
+							{"Linear", FilterMode.Linear},
+						};
+						foreach (var filter in filters)
+							x.Add(new RadioItem(filter.Key, y =>
+							{
+								y.Checked = filter.Value == _filterMode;
+								y.Click += delegate { _filterMode = filter.Value; };
+							}));
+					}),
+					new RadioItem("Keep aspect ratio", y =>
+					{
+						y.Checked = maintainAspectRatio;
+						y.Click += delegate { ApplyChangeAspectRatio(); };
+					}),
                     new SeparatorItem(),
                     new Item("Screenshot (F12)", x =>
                     {
@@ -287,5 +294,13 @@ namespace dotNES
         {
             e.IsInputKey = true;
         }
+
+		public void ApplyChangeAspectRatio()
+		{
+			maintainAspectRatio = !maintainAspectRatio;
+
+			var d3d = (Direct3DRenderer)_renderer;
+			d3d.ApplyMaintainAspectRatio();
+		}
     }
 }
